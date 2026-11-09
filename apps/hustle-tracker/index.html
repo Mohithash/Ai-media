@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hustle Tracker</title>
+<style>
+  :root {
+    --bg: #0b0f0d;
+    --card: #141a17;
+    --line: #22302a;
+    --text: #e8f2ec;
+    --muted: #8aa397;
+    --green: #22c55e;
+    --green-dim: #16a34a;
+    --danger: #f87171;
+    --c-freelancing: #22c55e;
+    --c-youtube: #f43f5e;
+    --c-etsy: #f59e0b;
+    --c-other: #38bdf8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 20px 16px 48px; }
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .logo {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--green); color: #052e16;
+    display: grid; place-items: center; font-weight: 800; font-size: 20px;
+  }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -0.02em; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 18px; padding: 18px; margin-bottom: 14px;
+  }
+  .total-label { color: var(--muted); font-size: 14px; }
+  .total {
+    font-size: 44px; font-weight: 800; letter-spacing: -0.03em;
+    color: var(--green); margin: 4px 0 2px; font-variant-numeric: tabular-nums;
+  }
+  .sub { color: var(--muted); font-size: 13px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  form { display: grid; gap: 10px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+  input, select {
+    width: 100%; font: inherit; font-size: 16px; color: var(--text);
+    background: #0f1512; border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px; min-height: 48px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--green); border-color: transparent; }
+  button.primary {
+    font: inherit; font-size: 17px; font-weight: 700; min-height: 54px;
+    border: 0; border-radius: 14px; background: var(--green); color: #052e16;
+    cursor: pointer; margin-top: 4px;
+  }
+  button.primary:active { background: var(--green-dim); }
+  .chart-wrap { position: relative; height: 200px; }
+  canvas { width: 100%; height: 100%; display: block; }
+  .empty { color: var(--muted); text-align: center; padding: 18px 0; font-size: 14px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li {
+    display: grid; grid-template-columns: 10px 1fr auto auto; gap: 12px; align-items: center;
+    padding: 12px 0; border-top: 1px solid var(--line);
+    animation: pop .35s ease;
+  }
+  li:first-child { border-top: 0; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .src { font-weight: 600; font-size: 15px; }
+  .note { color: var(--muted); font-size: 13px; }
+  .amt { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .del {
+    background: none; border: 0; color: var(--muted); font-size: 20px;
+    width: 44px; height: 44px; cursor: pointer; border-radius: 10px;
+  }
+  .del:hover { color: var(--danger); background: #1d1414; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">₹</div>
+    <h1>Hustle Tracker</h1>
+  </header>
+
+  <section class="card">
+    <div class="total-label">Earned this month</div>
+    <div class="total" id="total">₹0</div>
+    <div class="sub" id="count">No entries yet</div>
+  </section>
+
+  <section class="card">
+    <h2>Add income</h2>
+    <form id="form">
+      <div class="row">
+        <label>Amount (₹)
+          <input id="amount" type="number" inputmode="decimal" min="1" step="any" placeholder="2500" required>
+        </label>
+        <label>Date
+          <input id="date" type="date" required>
+        </label>
+      </div>
+      <label>Source
+        <select id="source">
+          <option>Freelancing</option>
+          <option>YouTube</option>
+          <option>Etsy</option>
+          <option>Other</option>
+        </select>
+      </label>
+      <label>Note
+        <input id="note" type="text" placeholder="Logo design for a client">
+      </label>
+      <button class="primary" type="submit">+ Add income</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Income by source</h2>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+  </section>
+
+  <section class="card">
+    <h2>All entries</h2>
+    <ul id="list"></ul>
+    <div class="empty" id="empty">Add your first income above 👆</div>
+  </section>
+</div>
+
+<script>
+  const KEY = 'hustle-tracker-v1';
+  const SOURCES = ['Freelancing', 'YouTube', 'Etsy', 'Other'];
+  const css = getComputedStyle(document.documentElement);
+  const COLORS = Object.fromEntries(SOURCES.map(s => [s, css.getPropertyValue('--c-' + s.toLowerCase()).trim()]));
+  const fmt = n => '₹' + Math.round(n).toLocaleString('en-IN');
+
+  let entries = [];
+  try { entries = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { entries = []; }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(entries)); } catch (e) {} };
+
+  const $ = id => document.getElementById(id);
+  const today = () => new Date().toISOString().slice(0, 10);
+  $('date').value = today();
+
+  function thisMonth(e) { return e.date.slice(0, 7) === today().slice(0, 7); }
+
+  function render() {
+    const month = entries.filter(thisMonth);
+    const total = month.reduce((s, e) => s + e.amount, 0);
+    $('total').textContent = fmt(total);
+    $('count').textContent = month.length
+      ? `${month.length} ${month.length === 1 ? 'entry' : 'entries'} this month`
+      : 'No entries yet';
+
+    const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+    $('list').innerHTML = sorted.map(e => `
+      <li>
+        <span class="dot" style="background:${COLORS[e.source]}"></span>
+        <div><div class="src">${e.source}</div><div class="note">${escapeHtml(e.note || '')} · ${e.date}</div></div>
+        <span class="amt">${fmt(e.amount)}</span>
+        <button class="del" aria-label="Delete" data-id="${e.id}">×</button>
+      </li>`).join('');
+    $('empty').style.display = entries.length ? 'none' : 'block';
+    drawChart(month);
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function drawChart(month) {
+    const c = $('chart'), dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight;
+    c.width = w * dpr; c.height = h * dpr;
+    const ctx = c.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+    const sums = SOURCES.map(s => month.filter(e => e.source === s).reduce((t, e) => t + e.amount, 0));
+    const max = Math.max(...sums, 1);
+    const pad = 8, labelH = 22, valueH = 20;
+    const bw = (w - pad * 2) / SOURCES.length;
+    ctx.font = '600 12px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    SOURCES.forEach((s, i) => {
+      const x = pad + i * bw + bw * 0.18, barW = bw * 0.64;
+      const barH = (h - labelH - valueH) * (sums[i] / max);
+      const y = h - labelH - barH;
+      ctx.fillStyle = '#1b2420';
+      roundRect(ctx, x, valueH, barW, h - labelH - valueH, 8); ctx.fill();
+      if (barH > 0) { ctx.fillStyle = COLORS[s]; roundRect(ctx, x, y, barW, barH, 8); ctx.fill(); }
+      ctx.fillStyle = '#8aa397';
+      ctx.fillText(s, x + barW / 2, h - 6);
+      if (sums[i]) { ctx.fillStyle = '#e8f2ec'; ctx.fillText(fmt(sums[i]), x + barW / 2, Math.max(y - 6, 14)); }
+    });
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    r = Math.min(r, h / 2, w / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+
+  $('form').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const amount = parseFloat($('amount').value);
+    if (!(amount > 0)) return;
+    entries.push({ id: Date.now(), amount, date: $('date').value || today(), source: $('source').value, note: $('note').value.trim() });
+    save();
+    $('amount').value = ''; $('note').value = '';
+    render();
+  });
+
+  $('list').addEventListener('click', ev => {
+    const id = ev.target.dataset && ev.target.dataset.id;
+    if (!id) return;
+    entries = entries.filter(e => String(e.id) !== id);
+    save(); render();
+  });
+
+  window.addEventListener('resize', () => drawChart(entries.filter(thisMonth)));
+  render();
+</script>
+</body>
+</html>

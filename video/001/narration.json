@@ -1,0 +1,94 @@
+{
+  "title": "Can AI Replace Developers? I Built an App With ZERO Coding",
+  "voice": "en_US-ryan-high",
+  "scenes": [
+    { "id": "hook", "lines": [
+      "This app tracks every rupee I earn from my side hustles.",
+      "I didn't write a single line of code.",
+      "I didn't hire a developer.",
+      "I just asked AI to build it.",
+      "Let me show you exactly how."
+    ]},
+    { "id": "stakes", "lines": [
+      "Building an app can cost anywhere from fifty thousand to five lakh rupees, sometimes more.",
+      "So today's question is simple.",
+      "Can AI really replace developers?",
+      "I'll show you every prompt, and every step.",
+      "And at the end, three ways you can actually make money with this skill."
+    ]},
+    { "id": "plan", "lines": [
+      "Step one: plan the app.",
+      "I don't know what features an app needs, so I asked AI.",
+      "Here's exactly what I typed.",
+      "In seconds, it planned everything.",
+      "A form to add income.",
+      "A big total for the month.",
+      "A list of every entry.",
+      "And a chart showing which hustle earns the most.",
+      "That's basically a planning meeting, done for free."
+    ]},
+    { "id": "build", "lines": [
+      "Step two: build it.",
+      "I gave AI one detailed prompt, in plain English.",
+      "The app's name, what it should do, dark mode, a green colour, and that it must save my data.",
+      "Then AI started writing the code.",
+      "Every line you see here was written by AI.",
+      "Around two hundred and thirty lines of HTML, CSS, and JavaScript.",
+      "I didn't touch any of it."
+    ]},
+    { "id": "demo", "lines": [
+      "And here's the result.",
+      "Let me add some income.",
+      "Twenty-five hundred rupees from freelancing, for a logo design.",
+      "Twelve hundred from YouTube.",
+      "And eight hundred from selling an Etsy template.",
+      "Look at that. The total updates instantly.",
+      "The chart shows which hustle is winning.",
+      "And if I close the app, and open it again...",
+      "everything is still saved."
+    ]},
+    { "id": "changes", "lines": [
+      "Step three: changes.",
+      "When you want something changed, you don't write code.",
+      "You just describe it.",
+      "For example: add a way to delete an entry if I make a mistake.",
+      "Done.",
+      "But here's the honest part.",
+      "This app saves data only on this phone.",
+      "There's no login, and no cloud backup.",
+      "If I clear my browser data, it's gone.",
+      "For a personal tracker, that's fine. For a real business, you'd need a lot more."
+    ]},
+    { "id": "online", "lines": [
+      "Step four: put it online.",
+      "Because this app is just one file, you can host it for free, on services like GitHub Pages, Netlify, or Vercel.",
+      "Upload the file, and you get a link that opens on any phone.",
+      "Just check each service's current free plan before you rely on it."
+    ]},
+    { "id": "verdict", "lines": [
+      "So, did AI just replace developers?",
+      "Honestly? No. Not completely.",
+      "AI is amazing for simple apps, tools, prototypes, and small business websites.",
+      "Things that used to take weeks can now take an afternoon.",
+      "But for apps with millions of users, payments, security, or private data, you still need real developers who understand what the code is doing.",
+      "AI didn't replace developers.",
+      "It replaced the excuse that you need to be a developer to build something.",
+      "And that's an opportunity."
+    ]},
+    { "id": "money", "lines": [
+      "Here are three ways to make money with this.",
+      "One. Build simple apps for local businesses: booking forms, digital menus, and order trackers.",
+      "Many small shops can't afford a big agency, but they may pay a few thousand rupees for something simple that works.",
+      "Two. Sell small tools and templates online, like budget trackers or habit trackers.",
+      "Three. Offer AI app building as a freelance service.",
+      "My advice: build your first app for free, for a friend's shop.",
+      "Use it as your portfolio, then charge for the next one.",
+      "There are no guarantees, but the skill is real."
+    ]},
+    { "id": "outro", "lines": [
+      "In my next video, I'll try to sell an AI-built app to a real local business, and show you whether anyone actually pays.",
+      "Subscribe so you don't miss it.",
+      "And comment below: what app should AI build next?"
+    ]}
+  ]
+}

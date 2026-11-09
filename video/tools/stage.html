@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Video stage</title>
+<style>
+  :root {
+    --bg: #070a09;
+    --panel: #111714;
+    --line: #22302a;
+    --text: #eef6f1;
+    --muted: #8aa397;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #f43f5e;
+    --blue: #38bdf8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+  body {
+    color: var(--text);
+    font-family: Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(900px 600px at 78% 30%, rgba(34,197,94,.13), transparent 70%),
+      radial-gradient(700px 500px at 10% 90%, rgba(56,189,248,.07), transparent 70%),
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px) 0 0 / 64px 64px,
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px) 0 0 / 64px 64px;
+  }
+  section { position: absolute; inset: 0; display: none; }
+  section.active { display: block; }
+
+  .badge {
+    position: absolute; left: 120px; top: 90px;
+    display: inline-flex; align-items: center; gap: 14px;
+    font-weight: 800; font-size: 26px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--green);
+  }
+  .badge b {
+    background: var(--green); color: #04220f; border-radius: 12px;
+    padding: 6px 14px; letter-spacing: .04em;
+  }
+  h1.big { font-size: 96px; line-height: 1.02; font-weight: 900; letter-spacing: -0.035em; }
+  h2.mid { font-size: 64px; line-height: 1.08; font-weight: 850; letter-spacing: -0.03em; }
+  .muted { color: var(--muted); }
+  .green { color: var(--green); }
+  .hl { background: linear-gradient(transparent 62%, rgba(34,197,94,.35) 62%); }
+
+  /* Phone */
+  .phone {
+    position: absolute; width: 422px; height: 862px; border-radius: 60px;
+    background: #000; padding: 16px;
+    box-shadow: 0 0 0 2px #2b3530, 0 0 0 9px #0d1110, 0 40px 120px rgba(0,0,0,.6), 0 0 160px rgba(34,197,94,.12);
+  }
+  .phone .screen { width: 390px; height: 830px; border-radius: 46px; overflow: hidden; background: #0b0f0d; }
+  .phone .status {
+    height: 50px; display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 34px 0; font-size: 17px; font-weight: 700; color: #e8f2ec;
+  }
+  .phone iframe { width: 390px; height: 780px; border: 0; display: block; background: #0b0f0d; }
+  .phone .notch {
+    position: absolute; top: 26px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 32px; background: #000; border-radius: 20px; z-index: 2;
+  }
+  .phone .dim {
+    position: absolute; inset: 16px; border-radius: 46px; background: #000; opacity: 0; pointer-events: none;
+  }
+  .tap {
+    position: absolute; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%;
+    border: 5px solid rgba(255,255,255,.95); background: rgba(255,255,255,.25);
+    opacity: 0; pointer-events: none; z-index: 5;
+  }
+
+  /* Prompt box */
+  .prompt {
+    position: absolute; background: var(--panel); border: 2px solid var(--line); border-radius: 28px;
+    padding: 30px 34px 26px; box-shadow: 0 30px 80px rgba(0,0,0,.4);
+  }
+  .prompt .label {
+    font-size: 20px; font-weight: 700; color: var(--muted); letter-spacing: .12em; text-transform: uppercase;
+    display: flex; justify-content: space-between; margin-bottom: 18px;
+  }
+  .prompt .body { font-size: 30px; line-height: 1.45; white-space: pre-wrap; min-height: 1.45em; }
+  .caret { display: inline-block; width: 3px; height: 1.1em; background: var(--green); vertical-align: -0.18em; margin-left: 2px; }
+  .send {
+    margin-top: 20px; display: flex; justify-content: flex-end;
+  }
+  .send span {
+    background: var(--green); color: #04220f; font-weight: 800; font-size: 22px;
+    padding: 10px 22px; border-radius: 14px;
+  }
+
+  /* Cards & lists */
+  .card {
+    position: absolute; background: var(--panel); border: 2px solid var(--line); border-radius: 28px; padding: 34px 38px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.4);
+  }
+  .card h3 { font-size: 30px; margin-bottom: 22px; display: flex; gap: 14px; align-items: center; }
+  .feat { display: flex; gap: 20px; align-items: center; font-size: 34px; font-weight: 650; padding: 16px 0; border-top: 2px solid var(--line); }
+  .feat:first-of-type { border-top: 0; }
+  .ico {
+    width: 58px; height: 58px; border-radius: 16px; display: grid; place-items: center; font-size: 30px; flex: none;
+    background: rgba(34,197,94,.14);
+  }
+  .code {
+    position: absolute; background: #0a0e0c; border: 2px solid var(--line); border-radius: 24px; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  }
+  .code .bar { height: 54px; background: #121915; display: flex; align-items: center; gap: 10px; padding: 0 22px; font-size: 20px; color: var(--muted); }
+  .code .bar i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+  .code pre {
+    font: 500 19px/1.55 "DejaVu Sans Mono", monospace; color: #c9d7cf; padding: 16px 24px;
+    white-space: pre; overflow: hidden;
+  }
+  .code .ln { color: #3d5046; display: inline-block; width: 52px; }
+  .tk-tag { color: #4ade80; } .tk-str { color: #fbbf24; } .tk-kw { color: #7dd3fc; } .tk-com { color: #5b6f65; }
+  .counter { position: absolute; font-variant-numeric: tabular-nums; }
+  .counter .n { font-size: 120px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; }
+  .counter .l { font-size: 26px; color: var(--muted); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-top: 8px; }
+
+  .callout {
+    position: absolute; display: flex; gap: 18px; align-items: center;
+    background: var(--panel); border: 2px solid var(--line); border-radius: 22px; padding: 20px 28px;
+    font-size: 32px; font-weight: 750;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 12px; padding: 18px 28px; border-radius: 20px;
+    background: var(--panel); border: 2px solid var(--line); font-size: 32px; font-weight: 750;
+  }
+  .col h3 { font-size: 40px; margin-bottom: 26px; }
+  .col .it { font-size: 34px; font-weight: 650; padding: 14px 0; display: flex; gap: 16px; align-items: center; }
+  .money {
+    position: absolute; width: 520px; height: 470px; top: 330px;
+    background: var(--panel); border: 2px solid var(--line); border-radius: 32px; padding: 40px;
+  }
+  .money .num { font-size: 88px; font-weight: 900; color: var(--green); line-height: 1; }
+  .money h4 { font-size: 40px; margin: 22px 0 16px; letter-spacing: -0.02em; line-height: 1.1; }
+  .money p { font-size: 28px; color: var(--muted); line-height: 1.4; }
+  .url {
+    position: absolute; display: flex; align-items: center; gap: 16px;
+    background: #f1f5f3; color: #18211c; border-radius: 999px; padding: 18px 34px; font-size: 32px; font-weight: 650;
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<!-- 1. HOOK -->
+<section data-scene="hook">
+  <div style="position:absolute;left:140px;top:170px;width:1000px">
+    <div data-at="0" data-fx="fadeUp" class="muted" style="font-size:34px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:40px">My side-hustle income app</div>
+    <h1 class="big" data-at="1" data-fx="slideR"><span class="green">0</span> lines of code</h1>
+    <h1 class="big" data-at="2" data-fx="slideR" style="margin-top:22px"><span class="green">0</span> developers</h1>
+    <h1 class="big" data-at="3" data-fx="pop" style="margin-top:22px"><span class="hl">100% built by AI</span></h1>
+  </div>
+  <div class="phone" id="hookPhone" data-at="0" data-off="-0.45" data-fx="phoneIn" style="left:1320px;top:60px"><div class="notch"></div></div>
+</section>
+
+<!-- 2. STAKES -->
+<section data-scene="stakes">
+  <div style="position:absolute;left:0;right:0;top:150px;text-align:center">
+    <div data-at="0" data-fx="fadeUp" class="muted" style="font-size:36px;font-weight:700">Typical cost to build an app</div>
+    <div data-at="0" data-off="0.4" data-fx="pop" style="font-size:150px;font-weight:900;letter-spacing:-0.04em;margin-top:6px">₹50,000 – ₹5,00,000<span class="muted" style="font-size:60px">+</span></div>
+    <div data-at="0" data-off="0.4" data-fx="fadeIn" class="muted" style="font-size:24px;margin-top:4px">Rough range: real quotes vary a lot</div>
+    <div data-at="2" data-fx="pop" style="margin-top:56px"><h2 class="mid">Can <span class="green">AI</span> really replace developers?</h2></div>
+    <div style="display:flex;gap:28px;justify-content:center;margin-top:52px">
+      <span class="chip" data-at="3" data-fx="fadeUp">✅ Every prompt</span>
+      <span class="chip" data-at="3" data-off="0.9" data-fx="fadeUp">✅ Every step</span>
+      <span class="chip" data-at="4" data-off="0.5" data-fx="fadeUp">💰 3 ways to earn</span>
+    </div>
+  </div>
+</section>
+
+<!-- 3. PLAN -->
+<section data-scene="plan">
+  <div class="badge" data-at="0" data-fx="fadeUp"><b>STEP 1</b> Plan the app</div>
+  <div class="prompt" data-at="1" data-off="0.2" data-fx="fadeUp" style="left:120px;top:200px;width:820px">
+    <div class="label"><span>Prompt</span><span>You</span></div>
+    <div class="body" data-type="2" data-type-dur="3.4">I want to build a simple app called "Hustle Tracker" to track money I earn from side hustles. I'm a beginner and can't code. List the features it should have (keep it simple), and describe the screens.</div>
+    <div class="send"><span>Send ↑</span></div>
+  </div>
+  <div class="card" data-at="3" data-fx="slideL" style="left:1010px;top:200px;width:790px">
+    <h3><span class="ico">🤖</span> AI's plan: Hustle Tracker</h3>
+    <div class="feat" data-at="4" data-fx="fadeUp"><span class="ico">➕</span> Form to add income</div>
+    <div class="feat" data-at="5" data-fx="fadeUp"><span class="ico">₹</span> Big monthly total</div>
+    <div class="feat" data-at="6" data-fx="fadeUp"><span class="ico">📋</span> List of every entry</div>
+    <div class="feat" data-at="7" data-fx="fadeUp"><span class="ico">📊</span> Chart by income source</div>
+  </div>
+  <div data-at="8" data-fx="pop" class="callout" style="left:120px;top:720px"><span class="green">✓</span> Planning meeting: done in seconds</div>
+</section>
+
+<!-- 4. BUILD -->
+<section data-scene="build">
+  <div class="badge" data-at="0" data-fx="fadeUp"><b>STEP 2</b> Build it</div>
+  <div class="prompt" data-at="1" data-fx="fadeUp" style="left:120px;top:200px;width:760px">
+    <div class="label"><span>Prompt</span><span>You</span></div>
+    <div class="body" style="font-size:25px" data-type="1" data-type-dur="5.2">Build a mobile-friendly web app called "Hustle Tracker".
+- Add income: amount, date, source, note
+- Show all entries, newest first
+- Show this month's total in big text
+- Bar chart of income by source
+- Save data so it's there when I reopen
+- Dark mode, green accent colour</div>
+    <div class="send"><span>Send ↑</span></div>
+  </div>
+  <div class="code" id="codeBox" data-at="3" data-fx="slideL" style="left:950px;top:150px;width:850px;height:640px">
+    <div class="bar"><i style="background:#f87171"></i><i style="background:#fbbf24"></i><i style="background:#4ade80"></i>&nbsp; index.html (written by AI)</div>
+    <pre id="codePre"></pre>
+  </div>
+  <div class="counter" data-at="4" data-fx="fadeUp" style="left:120px;top:700px">
+    <div class="n green" id="aiLines">0</div><div class="l">Lines written by AI</div>
+  </div>
+  <div class="counter" data-at="6" data-fx="pop" style="left:520px;top:700px">
+    <div class="n">0</div><div class="l">Lines written by me</div>
+  </div>
+</section>
+
+<!-- 5. DEMO -->
+<section data-scene="demo">
+  <div class="badge" data-at="0" data-fx="fadeUp"><b>RESULT</b> The finished app</div>
+  <div class="phone" id="demoPhone" data-at="0" data-off="-0.45" data-fx="phoneIn" style="left:640px;top:60px"><div class="notch"></div><div class="dim" id="demoDim"></div></div>
+  <div class="callout" data-at="2" data-fx="slideL" style="left:1200px;top:300px"><span class="ico">➕</span> Add income in seconds</div>
+  <div class="callout" data-at="5" data-off="0.5" data-fx="slideL" style="left:1200px;top:430px"><span class="ico">₹</span> Total updates instantly</div>
+  <div class="callout" data-at="6" data-fx="slideL" style="left:1200px;top:560px"><span class="ico">📊</span> Chart shows the winning hustle</div>
+  <div class="callout" data-at="8" data-fx="slideL" style="left:1200px;top:690px"><span class="ico">💾</span> Still saved after reopening</div>
+</section>
+
+<!-- 6. CHANGES -->
+<section data-scene="changes">
+  <div class="badge" data-at="0" data-fx="fadeUp" data-end="5"><b>STEP 3</b> Changes</div>
+  <div class="badge" data-at="5" data-fx="fadeUp" style="color:var(--amber)"><b style="background:var(--amber)">HONEST</b> The limits</div>
+  <div data-end="5">
+    <h2 class="mid" data-at="1" data-fx="fadeUp" style="position:absolute;left:120px;top:190px;width:900px">Don't write code.<br><span class="green">Describe the change.</span></h2>
+    <div class="prompt" data-at="3" data-fx="fadeUp" style="left:120px;top:440px;width:820px">
+      <div class="label"><span>Prompt</span><span>You</span></div>
+      <div class="body" data-type="3" data-type-dur="3">Add a way to delete an entry if I make a mistake.</div>
+      <div class="send"><span>Send ↑</span></div>
+    </div>
+  </div>
+  <div class="card" data-at="5" data-off="0.3" data-fx="slideR" style="left:120px;top:200px;width:880px;border-color:rgba(245,158,11,.5)">
+    <h3><span class="ico" style="background:rgba(245,158,11,.15)">⚠️</span> What AI didn't mention</h3>
+    <div class="feat" data-at="6" data-fx="fadeUp"><span class="ico" style="background:rgba(245,158,11,.15)">📱</span> Data saved only on this phone</div>
+    <div class="feat" data-at="7" data-fx="fadeUp"><span class="ico" style="background:rgba(245,158,11,.15)">🔒</span> No login, no cloud backup</div>
+    <div class="feat" data-at="8" data-fx="fadeUp"><span class="ico" style="background:rgba(245,158,11,.15)">🧹</span> Clear browser data = gone</div>
+    <div class="feat" data-at="9" data-fx="fadeUp" style="color:var(--muted);font-size:30px"><span class="ico">💼</span> Fine for you. Not enough for a business.</div>
+  </div>
+  <div class="phone" id="chPhone" data-at="0" data-off="-0.45" data-fx="phoneIn" style="left:1300px;top:60px"><div class="notch"></div><div class="dim" id="chDim"></div></div>
+</section>
+
+<!-- 7. ONLINE -->
+<section data-scene="online">
+  <div class="badge" data-at="0" data-fx="fadeUp"><b>STEP 4</b> Put it online</div>
+  <div class="card" data-at="1" data-fx="pop" style="left:120px;top:250px;width:330px;text-align:center;padding:46px 30px">
+    <div style="font-size:110px">📄</div>
+    <div style="font-size:34px;font-weight:800;margin-top:14px">index.html</div>
+    <div class="muted" style="font-size:24px;margin-top:8px">The whole app = 1 file</div>
+  </div>
+  <div data-at="1" data-off="1.2" data-fx="fadeIn" style="position:absolute;left:480px;top:390px;font-size:80px;color:var(--green)">→</div>
+  <div style="position:absolute;left:600px;top:250px;display:grid;gap:22px">
+    <span class="chip" data-at="1" data-off="2.0" data-fx="slideL">🌐 GitHub Pages</span>
+    <span class="chip" data-at="1" data-off="2.6" data-fx="slideL">🌐 Netlify</span>
+    <span class="chip" data-at="1" data-off="3.2" data-fx="slideL">🌐 Vercel</span>
+  </div>
+  <div class="url" data-at="2" data-off="0.6" data-fx="pop" style="left:120px;top:640px">🔒 yourname.github.io/hustle-tracker</div>
+  <div data-at="3" data-fx="fadeUp" class="muted" style="position:absolute;left:120px;top:770px;font-size:28px">ⓘ Check each service's current free plan</div>
+  <div class="phone" id="onPhone" data-at="2" data-off="0.9" data-fx="phoneIn" style="left:1320px;top:60px"><div class="notch"></div></div>
+</section>
+
+<!-- 8. VERDICT -->
+<section data-scene="verdict">
+  <div data-end="5">
+    <div style="position:absolute;left:0;right:0;top:110px;text-align:center">
+      <h2 class="mid" data-at="0" data-fx="fadeUp">Did AI replace developers?</h2>
+      <div data-at="1" data-fx="pop" style="font-size:54px;font-weight:850;margin-top:14px;color:var(--amber)">Honestly? Not completely.</div>
+    </div>
+    <div class="card col" data-at="2" data-fx="slideR" style="left:140px;top:360px;width:780px">
+      <h3 class="green">✅ AI is great for</h3>
+      <div class="it" data-at="2" data-off="0.6" data-fx="fadeUp">Simple apps &amp; tools</div>
+      <div class="it" data-at="2" data-off="1.4" data-fx="fadeUp">Prototypes</div>
+      <div class="it" data-at="2" data-off="2.2" data-fx="fadeUp">Small business websites</div>
+      <div class="it" data-at="3" data-fx="fadeUp" class="muted"><span class="green">Weeks → an afternoon</span></div>
+    </div>
+    <div class="card col" data-at="4" data-fx="slideL" style="left:1000px;top:360px;width:780px">
+      <h3 style="color:var(--amber)">⚠️ Still need developers</h3>
+      <div class="it" data-at="4" data-off="0.9" data-fx="fadeUp">Millions of users</div>
+      <div class="it" data-at="4" data-off="1.6" data-fx="fadeUp">Payments &amp; security</div>
+      <div class="it" data-at="4" data-off="2.3" data-fx="fadeUp">Private data</div>
+      <div class="it" data-at="4" data-off="3.2" data-fx="fadeUp">Understanding the code</div>
+    </div>
+  </div>
+  <div style="position:absolute;left:160px;right:160px;top:300px;text-align:center">
+    <h2 class="mid" data-at="5" data-fx="fadeUp" style="color:var(--muted)">AI didn't replace developers.</h2>
+    <h1 class="big" data-at="6" data-fx="pop" style="margin-top:30px">It replaced the <span class="hl">excuse</span>.</h1>
+    <h2 class="mid green" data-at="7" data-fx="fadeUp" style="margin-top:40px">That's an opportunity.</h2>
+  </div>
+</section>
+
+<!-- 9. MONEY -->
+<section data-scene="money">
+  <div data-end="5">
+    <h2 class="mid" data-at="0" data-fx="fadeUp" style="position:absolute;left:0;right:0;top:120px;text-align:center">💰 3 ways to make money with this</h2>
+    <div class="money" data-at="1" data-fx="fadeUp" style="left:120px">
+      <div class="num">1</div><h4>Apps for local businesses</h4><p>Booking forms, digital menus, order trackers</p>
+      <p data-at="2" data-fx="fadeIn" style="margin-top:18px;color:var(--text)">Small shops may pay a few thousand ₹</p>
+    </div>
+    <div class="money" data-at="3" data-fx="fadeUp" style="left:700px">
+      <div class="num">2</div><h4>Sell tools &amp; templates</h4><p>Budget trackers, habit trackers, calculators</p>
+    </div>
+    <div class="money" data-at="4" data-fx="fadeUp" style="left:1280px">
+      <div class="num">3</div><h4>Freelance service</h4><p>Offer "AI app building" to clients</p>
+    </div>
+  </div>
+  <div style="position:absolute;left:160px;right:160px;top:230px;text-align:center">
+    <div data-at="5" data-fx="fadeUp" class="muted" style="font-size:34px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">My advice</div>
+    <h1 class="big" data-at="5" data-off="0.3" data-fx="pop" style="margin-top:24px">First app <span class="green">free</span> for a friend's shop</h1>
+    <h2 class="mid" data-at="6" data-fx="fadeUp" style="margin-top:36px">Portfolio → charge for the next one</h2>
+    <div data-at="7" data-fx="fadeUp" class="muted" style="font-size:32px;margin-top:44px">No guarantees. But the skill is real.</div>
+  </div>
+</section>
+
+<!-- 10. OUTRO -->
+<section data-scene="outro">
+  <div style="position:absolute;left:0;right:0;top:170px;text-align:center">
+    <div data-at="0" data-fx="fadeUp" class="muted" style="font-size:34px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">Next video</div>
+    <h1 class="big" data-at="0" data-off="0.4" data-fx="pop" style="margin-top:24px">Selling my AI app to a<br><span class="green">real local business</span></h1>
+    <div data-at="0" data-off="1.2" data-fx="fadeUp" class="muted" style="font-size:36px;margin-top:24px">Will anyone actually pay?</div>
+    <div style="display:flex;gap:30px;justify-content:center;margin-top:60px">
+      <span data-at="1" data-fx="pop" id="subBtn" style="background:#ef4444;color:#fff;font-size:40px;font-weight:850;padding:22px 46px;border-radius:18px">🔔 SUBSCRIBE</span>
+      <span data-at="2" data-fx="pop" class="chip" style="font-size:36px">💬 What should AI build next?</span>
+    </div>
+  </div>
+</section>
+
+<div class="tap" id="tap"></div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const SCENE = params.get('scene');
+const APP = params.get('app') || '/repo/apps/hustle-tracker/index.html';
+const KEY = 'hustle-tracker-v1';
+const FX = {
+  fadeUp:  [{ opacity: 0, transform: 'translateY(40px)' }, { opacity: 1, transform: 'none' }],
+  fadeIn:  [{ opacity: 0 }, { opacity: 1 }],
+  slideR:  [{ opacity: 0, transform: 'translateX(-80px)' }, { opacity: 1, transform: 'none' }],
+  slideL:  [{ opacity: 0, transform: 'translateX(80px)' }, { opacity: 1, transform: 'none' }],
+  pop:     [{ opacity: 0, transform: 'scale(.82)' }, { opacity: 1, transform: 'scale(1.04)', offset: .7 }, { opacity: 1, transform: 'none' }],
+  phoneIn: [{ opacity: 0, transform: 'translateY(120px) rotate(4deg)' }, { opacity: 1, transform: 'none' }],
+};
+const DUR = { pop: 450, phoneIn: 700 };
+const ease = p => p < 0 ? 0 : p > 1 ? 1 : 1 - Math.pow(1 - p, 3);
+const clamp = p => Math.max(0, Math.min(1, p));
+
+let cues, sceneEl, sceneDur, steps = [], typers = [], iframeAnims = new Map(), tapAt = null, tapPos = null;
+let curT = 0;
+const cueT = (k, off = 0) => cues[k].t + off;
+const cueEnd = k => cues[k].t + cues[k].d;
+
+function wireAnimations() {
+  sceneEl.querySelectorAll('[data-at]').forEach(el => {
+    const fx = el.dataset.fx || 'fadeUp';
+    const delay = cueT(+el.dataset.at, +(el.dataset.off || 0)) * 1000;
+    el.animate(FX[fx], { duration: DUR[fx] || 550, delay, fill: 'both', easing: 'cubic-bezier(.2,.8,.2,1)' }).pause();
+  });
+  sceneEl.querySelectorAll('[data-end]').forEach(el => {
+    const delay = cueT(+el.dataset.end) * 1000 - 350;
+    el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 350, delay, fill: 'forwards' }).pause();
+  });
+  sceneEl.querySelectorAll('[data-type]').forEach(el => {
+    const text = el.textContent;
+    const k = +el.dataset.type;
+    typers.push({ el, text, t0: cueT(k), dur: +(el.dataset.typeDur || cues[k].d) });
+    el.textContent = '';
+  });
+}
+
+function makePhone(id, entries) {
+  try { localStorage.setItem(KEY, JSON.stringify(entries || [])); } catch (e) {}
+  const f = document.createElement('iframe');
+  f.src = APP;
+  const screen = document.createElement('div');
+  screen.className = 'screen';
+  screen.innerHTML = '<div class="status"><span>9:41</span><span>▂▄▆ ◔</span></div>';
+  screen.appendChild(f);
+  document.getElementById(id).insertBefore(screen, document.getElementById(id).children[1] || null);
+  return new Promise(r => f.addEventListener('load', () => { freezeIframe(f); r(f); }, { once: true }));
+}
+function freezeIframe(f) {
+  // Hide scrollbars and make the in-app CSS animations follow the video clock.
+  const s = f.contentDocument.createElement('style');
+  s.textContent = 'html{scrollbar-width:none}::-webkit-scrollbar{display:none}';
+  f.contentDocument.head.appendChild(s);
+}
+function syncIframeAnims(f) {
+  if (!f || !f.contentDocument) return;
+  for (const a of f.contentDocument.getAnimations()) {
+    if (!iframeAnims.has(a)) { iframeAnims.set(a, curT); a.pause(); }
+    a.currentTime = Math.max(0, (curT - iframeAnims.get(a)) * 1000);
+  }
+}
+
+const today = new Date().toISOString().slice(0, 10);
+const day = n => { const d = new Date(); d.setDate(Math.max(1, d.getDate() - n)); return d.toISOString().slice(0, 10); };
+const SEED = [
+  { id: 1, amount: 3500, date: day(9), source: 'Freelancing', note: 'Website copy' },
+  { id: 2, amount: 1450, date: day(7), source: 'YouTube', note: 'Ad revenue' },
+  { id: 3, amount: 900, date: day(5), source: 'Etsy', note: 'Planner template' },
+  { id: 4, amount: 2200, date: day(3), source: 'Freelancing', note: 'Logo design' },
+  { id: 5, amount: 600, date: day(2), source: 'Other', note: 'Prompt pack' },
+  { id: 6, amount: 1100, date: day(1), source: 'Etsy', note: 'Budget sheet' },
+];
+
+// Steps: { at, dur, run(p) } run every frame once at>=t (dur>0), or once (dur 0).
+function step(at, dur, run) { steps.push({ at, dur, run, done: false }); }
+function once(at, run) { steps.push({ at, dur: 0, run, done: false }); }
+
+function tapOn(f, phoneId, selector, idx = 0) {
+  const el = f.contentDocument.querySelectorAll(selector)[idx];
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  const fr = f.getBoundingClientRect();
+  tapAt = curT; tapPos = [fr.left + r.left + r.width / 2, fr.top + r.top + r.height / 2];
+  return el;
+}
+function typeStep(f, sel, text, at, dur) {
+  step(at, dur, p => { f.contentDocument.querySelector(sel).value = text.slice(0, Math.round(text.length * p)); });
+}
+function scrollStep(f, at, dur, to) {
+  let from = null;
+  step(at, dur, p => {
+    const w = f.contentWindow;
+    if (from === null) from = w.scrollY;
+    const target = to === 'end' ? w.document.documentElement.scrollHeight - w.innerHeight : to;
+    w.scrollTo(0, from + (target - from) * ease(p));
+  });
+}
+function addEntry(f, phoneId, at, amount, source, note, dur) {
+  const w = f.contentWindow;
+  once(at, () => tapOn(f, phoneId, '#amount'));
+  typeStep(f, '#amount', String(amount), at + 0.15, Math.min(0.5, dur * 0.2));
+  once(at + dur * 0.32, () => { tapOn(f, phoneId, '#source'); f.contentDocument.querySelector('#source').value = source; });
+  typeStep(f, '#note', note, at + dur * 0.45, dur * 0.3);
+  once(at + dur * 0.88, () => { tapOn(f, phoneId, 'button.primary'); f.contentDocument.querySelector('#form').requestSubmit(); });
+}
+
+const SCENES = {
+  async hook() {
+    const f = await makePhone('hookPhone', SEED);
+    scrollStep(f, 1.5, sceneDur - 2.5, 'end');
+  },
+  async plan() {}, async stakes() {}, async verdict() {}, async money() {}, async outro() {},
+  async build() {
+    const src = await (await fetch(APP)).text();
+    const lines = src.split('\n');
+    const pre = document.getElementById('codePre');
+    const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const hl = s => esc(s)
+      .replace(/(&lt;\/?[a-z0-9]+)/gi, '<span class="tk-tag">$1</span>')
+      .replace(/('[^']*'|"[^"]*"|`[^`]*`)/g, '<span class="tk-str">$1</span>')
+      .replace(/\b(const|let|function|return|if|for|new|await|async)\b/g, '<span class="tk-kw">$1</span>');
+    const rendered = lines.map((l, i) => `<span class="ln">${i + 1}</span>${hl(l)}`);
+    const t0 = cueT(3) + 0.3, t1 = sceneDur - 0.6, VISIBLE = 34;
+    let last = -1;
+    step(t0, t1 - t0, p => {
+      const n = Math.round(lines.length * p);
+      if (n === last) return;
+      last = n;
+      pre.innerHTML = rendered.slice(Math.max(0, n - VISIBLE), n).join('\n');
+      document.getElementById('aiLines').textContent = n;
+    });
+  },
+  async demo() {
+    const f = await makePhone('demoPhone', []);
+    const c = cues;
+    once(c[1].t + 0.4, () => tapOn(f, 'demoPhone', '#amount'));
+    addEntry(f, 'demoPhone', c[2].t, 2500, 'Freelancing', 'Logo design', c[2].d);
+    addEntry(f, 'demoPhone', c[3].t - 0.1, 1200, 'YouTube', 'Ad revenue', c[3].d + 0.3);
+    addEntry(f, 'demoPhone', c[4].t, 800, 'Etsy', 'Template sale', c[4].d);
+    scrollStep(f, c[6].t, 0.9, 470);
+    const dim = document.getElementById('demoDim');
+    step(c[7].t + 0.3, 0.5, p => { dim.style.opacity = p; });
+    once(c[7].t + 0.85, () => new Promise(r => {
+      iframeAnims.clear();
+      f.addEventListener('load', () => { freezeIframe(f); r(); }, { once: true });
+      f.contentWindow.location.reload();
+    }));
+    step(c[8].t - 0.1, 0.5, p => { dim.style.opacity = 1 - p; });
+  },
+  async changes() {
+    const f = await makePhone('chPhone', SEED.slice(2, 5));
+    scrollStep(f, 0.6, 1.2, 'end');
+    once(cueT(4) - 0.05, () => {
+      const btn = tapOn(f, 'chPhone', '.del', 1);
+      if (btn) btn.click();
+    });
+    const dim = document.getElementById('chDim');
+    step(cueT(5) + 0.3, 0.6, p => { dim.style.opacity = 0.55 * p; });
+  },
+  async online() {
+    await makePhone('onPhone', SEED);
+  },
+};
+
+window.ready = (async () => {
+  cues = null;
+  const all = await (await fetch(params.get('timings'))).json();
+  const sc = all.find(s => s.id === SCENE);
+  cues = sc.cues; sceneDur = sc.duration;
+  sceneEl = document.querySelector(`[data-scene="${SCENE}"]`);
+  sceneEl.classList.add('active');
+  wireAnimations();
+  await SCENES[SCENE]();
+  await document.fonts.ready;
+  return { duration: sceneDur };
+})();
+
+window.seek = async t => {
+  curT = t;
+  for (const a of document.getAnimations()) a.currentTime = t * 1000;
+  for (const ty of typers) {
+    const p = clamp((t - ty.t0) / ty.dur);
+    const n = Math.round(ty.text.length * p);
+    const caret = t >= ty.t0 - 0.6 && (p < 1 || Math.floor(t * 2) % 2 === 0);
+    ty.el.innerHTML = ty.text.slice(0, n).replace(/&/g, '&amp;').replace(/</g, '&lt;') + (caret ? '<span class="caret"></span>' : '');
+  }
+  for (const s of steps) {
+    if (t < s.at) continue;
+    if (s.done) continue;
+    if (s.dur > 0) { const p = clamp((t - s.at) / s.dur); s.run(p); if (p >= 1) s.done = true; }
+    else { s.done = true; await s.run(); }
+  }
+  document.querySelectorAll('.phone iframe').forEach(syncIframeAnims);
+  const tap = document.getElementById('tap');
+  if (tapAt !== null && t - tapAt < 0.45) {
+    const p = (t - tapAt) / 0.45;
+    tap.style.left = tapPos[0] + 'px'; tap.style.top = tapPos[1] + 'px';
+    tap.style.opacity = String(1 - p);
+    tap.style.transform = `scale(${0.6 + 0.6 * p})`;
+  } else tap.style.opacity = '0';
+};
+</script>
+</body>
+</html>
