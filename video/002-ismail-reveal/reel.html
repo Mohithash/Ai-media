@@ -230,7 +230,22 @@
 </div>
 
 <script>
-const DURATION = 68.2;
+const DURATION_ORIG = 68.2;
+// Time-stretch so each ayah scene lasts as long as its recitation.
+// [orig start, orig end, new length]: the design timeline between start and end is stretched.
+// "audio": recitation file, played from the stretched start + offset.
+const STRETCH = [
+  { a: 0.4,  b: 4.6,  len: 7.0,  audio: '1_1.mp3',    off: 0.2 },
+  { a: 11.3, b: 15.6, len: 6.4,  audio: '37_100.mp3', off: 0.2 },
+  { a: 17.1, b: 21.4, len: 7.0,  audio: '37_101.mp3', off: 0.2 },
+  { a: 22.9, b: 28.8, len: 18.8, audio: '14_39.mp3',  off: 0.2 },
+  { a: 30.4, b: 35.8, len: 15.6, audio: '19_54.mp3',  off: 0.2 },
+  { a: 61.0, b: 67.0, len: 6.4,  audio: '37_100.mp3', off: 0.2 },
+];
+function toNew(o) { let add = 0; for (const s of STRETCH) { if (o <= s.a) break; add += (Math.min(o, s.b) - s.a) * (s.len / (s.b - s.a) - 1); } return o + add; }
+function toOrig(n) { let lo = 0, hi = DURATION_ORIG; for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2; if (toNew(m) < n) lo = m; else hi = m; } return (lo + hi) / 2; }
+const DURATION = toNew(DURATION_ORIG);
+const AUDIO_CUES = STRETCH.map(s => ({ file: s.audio, at: +(toNew(s.a) + s.off).toFixed(2) }));
 const $ = s => document.querySelector(s);
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const ease = x => { x = clamp(x); return x * x * (3 - 2 * x); };
@@ -279,7 +294,7 @@ const BURST = Array.from({length: 140}, () => ({a: R()*6.28, v: 260 + R()*900, r
 const REVEAL = 41.3;
 
 const ctx = $('#stars').getContext('2d');
-function drawParticles(t) {
+function drawParticles(t, tOrig) {
   ctx.clearRect(0, 0, 1080, 1920);
   for (const s of STARS) {
     const a = .25 + .6 * (0.5 + 0.5 * Math.sin(t * s.sp + s.p));
@@ -293,7 +308,7 @@ function drawParticles(t) {
     g.addColorStop(0, 'rgba(255,220,140,.75)'); g.addColorStop(1, 'rgba(255,220,140,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, d.r * 4, 0, 6.283); ctx.fill();
   }
-  const bt = t - REVEAL;
+  const bt = tOrig - REVEAL;
   if (bt > 0 && bt < 4.5) {
     for (const p of BURST) {
       const k = bt / p.life; if (k >= 1) continue;
@@ -306,14 +321,15 @@ function drawParticles(t) {
 }
 
 const els = [...document.querySelectorAll('.el')];
-function seek(t) {
-  drawParticles(t);
-  $('#rosette').style.transform = `rotate(${t * 2.2}deg) scale(${1 + .03 * Math.sin(t * .5)})`;
-  $('#moon').style.opacity = ease(t / 1.5);
-  $('#moon').style.transform = `translateY(${Math.sin(t * .8) * 8}px)`;
+function seek(T) {
+  const t = toOrig(T);
+  drawParticles(T, t);
+  $('#rosette').style.transform = `rotate(${T * 2.2}deg) scale(${1 + .03 * Math.sin(T * .5)})`;
+  $('#moon').style.opacity = ease(T / 1.5);
+  $('#moon').style.transform = `translateY(${Math.sin(T * .8) * 8}px)`;
   document.querySelectorAll('.lantern').forEach((l, i) => {
-    l.style.transform = `rotate(${Math.sin(t * 1.1 + i * 1.7) * (2.5 - i * .6)}deg)`;
-    l.style.opacity = ease(t / 1.2);
+    l.style.transform = `rotate(${Math.sin(T * 1.1 + i * 1.7) * (2.5 - i * .6)}deg)`;
+    l.style.opacity = ease(T / 1.2);
   });
 
   for (const el of els) {
@@ -359,6 +375,8 @@ function seek(t) {
   $('#sky').style.filter = `brightness(${1 + .25 * clamp(ft > 0 ? 1 - Math.abs(ft - 3) / 7 : 0)})`;
 }
 window.DURATION = DURATION;
+window.AUDIO_CUES = AUDIO_CUES;
+window.REVEAL_AT = toNew(REVEAL);
 window.seek = seek;
 window.ready = document.fonts.ready.then(() => Promise.all([...document.fonts].map(f => f.load()))).then(() => seek(0));
 </script>
